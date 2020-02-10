@@ -211,11 +211,8 @@ PROGNAME=${0##*/}
 VERSION="2.16"
 
 # defaults
-# ACCOUNT_EMAIL
-# ACCOUNT_KEY_ALG
 ACCOUNT_KEY_LENGTH=4096
 ACCOUNT_KEY_TYPE="rsa"
-# AGREEMENT?
 CA_CERT_LOCATION=""
 CA="https://acme-staging-v02.api.letsencrypt.org/directory"
 CHALLENGE_CHECK_TYPE="http"
@@ -227,32 +224,23 @@ CSR_SUBJECT="/"
 CURL_USERAGENT="${PROGNAME}/${VERSION}"
 DEACTIVATE_AUTH="false"
 DEFAULT_REVOKE_CA="https://acme-v02.api.letsencrypt.org"
-# DNS_ADD_COMMAND
-# DNS_DEL_COMMAND
-# DNS_CHECK_FUNC (internal?)
 DNS_EXTRA_WAIT=""
 DNS_WAIT=10
-# DOMAIN_DIR
 DOMAIN_KEY_LENGTH=4096
 DUAL_RSA_ECDSA="false"
-# FORCE_RENEWAL (file)
 GETSSL_IGNORE_CP_PRESERVE="false"
 HTTP_TOKEN_CHECK_WAIT=0
 IGNORE_DIRECTORY_DOMAIN="false"
 OCSP_MUST_STAPLE="false"
 ORIG_UMASK=$(umask)
-# PREVENT_NON_INTERACTIVE_RENEWAL
 PREVIOUSLY_VALIDATED="true"
 PRIVATE_KEY_ALG="rsa"
 PUBLIC_DNS_SERVER=""
 RELOAD_CMD=""
 RENEW_ALLOW="30"
 REUSE_PRIVATE_KEY="true"
-# REMOTE_EXTRA
-# REVOKE_CA
 SERVER_TYPE="https"
 SKIP_HTTP_TOKEN_CHECK="false"
-# SSH_OPTS
 SSLCONF="$(openssl version -d 2>/dev/null| cut -d\" -f2)/openssl.cnf"
 TEMP_UPGRADE_FILE=""
 TOKEN_USER_ID=""
@@ -1899,10 +1887,12 @@ write_domain_template() { # write out a template file for a domain.
 	# see https://github.com/srvrco/getssl/wiki/Example-config-files for example configs
 	#
 	# The staging server is best for testing
-	#CA="https://acme-staging-v02.api.letsencrypt.org/directory"
+	#CA="https://acme-staging-v02.api.letsencrypt.org/"
 	# This server issues full certificates, however has rate limits
 	#CA="https://acme-v02.api.letsencrypt.org"
 
+    # Account key and private key types - can be rsa, prime256v1, secp384r1 or secp521r1
+	#ACCOUNT_KEY_TYPE="rsa"
 	#PRIVATE_KEY_ALG="rsa"
 
 	# Additional domains - this could be multiple domains / subdomains in a comma separated list
@@ -1928,7 +1918,7 @@ write_domain_template() { # write out a template file for a domain.
     # Specify SSH options, e.g. non standard port in SSH_OPTS
     # SSH_OPTS=-p 12345
 
-	#Set USE_SINGLE_ACL="true" to use a single ACL for all checks
+	# Set USE_SINGLE_ACL="true" to use a single ACL for all checks
 	#USE_SINGLE_ACL="false"
 
 	# Location for all your certs, these can either be on the server (full path name)
@@ -1942,6 +1932,9 @@ write_domain_template() { # write out a template file for a domain.
 	# The command needed to reload apache / nginx or whatever you use
 	#RELOAD_CMD=""
 
+    # Uncomment the following line to prevent non-interactive renewals of certificates
+    #PREVENT_NON_INTERACTIVE_RENEWAL="true"
+
 	# Define the server type. This can be https, ftp, ftpi, imap, imaps, pop3, pop3s, smtp,
 	# smtps_deprecated, smtps, smtp_submission, xmpp, xmpps, ldaps or a port number which
 	# will be checked for certificate expiry and also will be checked after
@@ -1949,6 +1942,11 @@ write_domain_template() { # write out a template file for a domain.
 	#SERVER_TYPE="https"
 	#CHECK_REMOTE="true"
 	#CHECK_REMOTE_WAIT="2" # wait 2 seconds before checking the remote server
+
+	# Use the following 3 variables if you want to validate via DNS
+	#VALIDATE_VIA_DNS="true"
+	#DNS_ADD_COMMAND=
+	#DNS_DEL_COMMAND=
 	_EOF_domain_
 }
 
@@ -1960,7 +1958,7 @@ write_getssl_template() { # write out the main template file
 	# see https://github.com/srvrco/getssl/wiki/Config-variables for details
 	#
 	# The staging server is best for testing (hence set as default)
-	CA="https://acme-staging-v02.api.letsencrypt.org/directory"
+	CA="https://acme-staging-v02.api.letsencrypt.org"
 	# This server issues full certificates, however has rate limits
 	#CA="https://acme-v02.api.letsencrypt.org"
 
@@ -1970,13 +1968,19 @@ write_getssl_template() { # write out the main template file
 	#ACCOUNT_EMAIL="me@example.com"
 	ACCOUNT_KEY_LENGTH=4096
 	ACCOUNT_KEY="$WORKING_DIR/account.key"
-	PRIVATE_KEY_ALG="rsa"
+
+	# Account key and private key types - can be rsa, prime256v1, secp384r1 or secp521r1
+	#ACCOUNT_KEY_TYPE="rsa"
+    PRIVATE_KEY_ALG="rsa"
 	#REUSE_PRIVATE_KEY="true"
 
 	# The command needed to reload apache / nginx or whatever you use
 	#RELOAD_CMD=""
+
 	# The time period within which you want to allow renewal of a certificate
 	#  this prevents hitting some of the rate limits.
+    # Creating a file called FORCE_RENEWAL in the domain directory allows one-off overrides
+    # of this setting
 	RENEW_ALLOW="30"
 
 	# Define the server type. This can be https, ftp, ftpi, imap, imaps, pop3, pop3s, smtp,
@@ -1985,11 +1989,6 @@ write_getssl_template() { # write out the main template file
 	# an update to confirm correct certificate is running (if CHECK_REMOTE) is set to true
 	SERVER_TYPE="https"
 	CHECK_REMOTE="true"
-
-	# Use the following 3 variables if you want to validate via DNS
-	#VALIDATE_VIA_DNS="true"
-	#DNS_ADD_COMMAND=
-	#DNS_DEL_COMMAND=
 	_EOF_getssl_
 }
 
