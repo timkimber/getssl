@@ -1962,6 +1962,7 @@ write_getssl_template() { # write out the main template file
 	# This server issues full certificates, however has rate limits
 	#CA="https://acme-v02.api.letsencrypt.org"
 
+    # The agreement that must be signed with the CA, if not defined the default agreement will be used
 	#AGREEMENT="$AGREEMENT"
 
 	# Set an email address associated with your account - generally set at account level rather than domain.
