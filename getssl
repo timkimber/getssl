@@ -549,8 +549,12 @@ copy_file_to_location() { # copies a file, using scp, sftp or ftp if required.
   cert=$1   # descriptive name, just used for display
   from=$2   # current file location
   to=$3     # location to move file to.
+  suffix=$4 # (optional) optional suffix for DUAL_RSA_ECDSA, i.e. save to private.key becomes save to private.ec.key
   IFS=\; read -r -a copy_locations <<<"$3"
   for to in "${copy_locations[@]}"; do
+    if [[ -n "$suffix" ]]; then
+      to="${to%.*}.ec.${to##*.}"
+    fi
     info "copying $cert to $to"
     if [[ "${to:0:4}" == "ssh:" ]] ; then
       debug "using scp -q $SCP_OPTS $from ${to:4}"
@@ -2545,17 +2549,20 @@ if [[ "$DUAL_RSA_ECDSA" == "true" ]]; then
   if [[ -n "$DOMAIN_CERT_LOCATION" ]]; then
     copy_file_to_location "ec domain certificate" \
                           "${CERT_FILE%.*}.ec.crt" \
-                          "${DOMAIN_CERT_LOCATION%.*}.ec.crt"
+                          "${DOMAIN_CERT_LOCATION}" \
+                          "ec"
   fi
   if [[ -n "$DOMAIN_KEY_LOCATION" ]]; then
-  copy_file_to_location "ec private key" \
-                        "$DOMAIN_DIR/${DOMAIN}.ec.key" \
-                        "${DOMAIN_KEY_LOCATION%.*}.ec.key"
+    copy_file_to_location "ec private key" \
+                          "$DOMAIN_DIR/${DOMAIN}.ec.key" \
+                          "${DOMAIN_KEY_LOCATION}" \
+                          "ec"
   fi
   if [[ -n "$CA_CERT_LOCATION" ]]; then
-  copy_file_to_location "ec CA certificate" \
-                        "${CA_CERT%.*}.ec.crt" \
-                        "${CA_CERT_LOCATION%.*}.ec.crt"
+    copy_file_to_location "ec CA certificate" \
+                          "${CA_CERT%.*}.ec.crt" \
+                          "${CA_CERT_LOCATION%.*}.crt" \
+                          "ec"
   fi
 fi
 
@@ -2570,7 +2577,7 @@ if [[ -n "$DOMAIN_CHAIN_LOCATION" ]]; then
   copy_file_to_location "full chain" "$TEMP_DIR/${DOMAIN}_chain.pem"  "$to_location"
   if [[ "$DUAL_RSA_ECDSA" == "true" ]]; then
     cat "${CERT_FILE%.*}.ec.crt" "${CA_CERT%.*}.ec.crt" > "$TEMP_DIR/${DOMAIN}_chain.pem.ec"
-    copy_file_to_location "full chain" "$TEMP_DIR/${DOMAIN}_chain.pem.ec"  "${to_location%.*}.ec.${to_location##*.}"
+    copy_file_to_location "full chain" "$TEMP_DIR/${DOMAIN}_chain.pem.ec"  "${to_location}" "ec"
   fi
 fi
 # if DOMAIN_KEY_CERT_LOCATION is not blank, then create and copy file.
@@ -2583,8 +2590,8 @@ if [[ -n "$DOMAIN_KEY_CERT_LOCATION" ]]; then
   cat "$DOMAIN_DIR/${DOMAIN}.key" "$CERT_FILE" > "$TEMP_DIR/${DOMAIN}_K_C.pem"
   copy_file_to_location "private key and domain cert pem" "$TEMP_DIR/${DOMAIN}_K_C.pem"  "$to_location"
   if [[ "$DUAL_RSA_ECDSA" == "true" ]]; then
-  cat "$DOMAIN_DIR/${DOMAIN}.ec.key" "${CERT_FILE%.*}.ec.crt" > "$TEMP_DIR/${DOMAIN}_K_C.pem.ec"
-  copy_file_to_location "private ec key and domain cert pem" "$TEMP_DIR/${DOMAIN}_K_C.pem.ec"  "${to_location%.*}.ec.${to_location##*.}"
+    cat "$DOMAIN_DIR/${DOMAIN}.ec.key" "${CERT_FILE%.*}.ec.crt" > "$TEMP_DIR/${DOMAIN}_K_C.pem.ec"
+    copy_file_to_location "private ec key and domain cert pem" "$TEMP_DIR/${DOMAIN}_K_C.pem.ec" "${to_location}" "ec"
   fi
 fi
 # if DOMAIN_PEM_LOCATION is not blank, then create and copy file.
@@ -2598,7 +2605,7 @@ if [[ -n "$DOMAIN_PEM_LOCATION" ]]; then
   copy_file_to_location "full key, cert and chain pem" "$TEMP_DIR/${DOMAIN}.pem"  "$to_location"
   if [[ "$DUAL_RSA_ECDSA" == "true" ]]; then
     cat "$DOMAIN_DIR/${DOMAIN}.ec.key" "${CERT_FILE%.*}.ec.crt" "${CA_CERT%.*}.ec.crt" > "$TEMP_DIR/${DOMAIN}.pem.ec"
-    copy_file_to_location "full ec key, cert and chain pem" "$TEMP_DIR/${DOMAIN}.pem.ec"  "${to_location%.*}.ec.${to_location##*.}"
+    copy_file_to_location "full ec key, cert and chain pem" "$TEMP_DIR/${DOMAIN}.pem.ec"  "${to_location}" "ec"
   fi
 fi
 # end of copying certs.
